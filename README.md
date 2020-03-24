@@ -1,4 +1,4 @@
-<h3> Diameter Estimation for carotid artery (CCA) ultrasound images <h3>
+<h3> Diameter Estimation for carotid artery (CCA) ultrasound images </h3>
 
 Prerequisites: <br/>
 <ul>
