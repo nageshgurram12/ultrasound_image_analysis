@@ -137,9 +137,9 @@ def  main():
                         help="Choose the backbone model")
     parser.add_argument('--diameters', type=int, default=4,
                         help="Output responses to estimate")
-    parser.add_argument('--predict-only-avg', type=bool, action='store_true',
+    parser.add_argument('--predict-only-avg', action='store_true',
                         help="Predict only average of 3 cross sections")
-    parser.add_argument('--aug-by-crop', type=bool, action='store_true',
+    parser.add_argument('--aug-by-crop', action='store_true',
                         help="Crop image vertically at 3 sections to augment")
     
     # training hyper params
@@ -151,7 +151,7 @@ def  main():
     parser.add_argument('--test-split', type=float, default=0.2)
     parser.add_argument('--val-split', type=float, default=0.1)
     parser.add_argument('--num-workers', type=int, default=0)
-    parser.add_argument('--pretrained', type=bool, default=True,  
+    parser.add_argument('--pretrained', default=True,  
                         action='store_true')
     
     #optimizers hyper params

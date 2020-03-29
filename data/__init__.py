@@ -123,13 +123,16 @@ class UltrasoundData(Dataset):
             target =  torch.FloatTensor(target) 
         
         # Generate 3 images for 3 diameter cross sections and give random
-        if self.params.aug_by_crop and self.split != 'test':
-            # take cropped image with p=0.2 and original image with p=0.4
-            choice = np.random.choice(4, 1, p=[0.2,0.2,0.2,0.4])[0]
-            image = self.get_cropped_image(image, choice)
-            target = target[choice] # last is average in targets
-            #print(image_path + " " + str(choice) + " " + str(target))
-            
+        if self.params.aug_by_crop:
+            # Dont apply augmentation to test data
+            if self.split == 'test':
+                target = [target[3]]
+            else:
+                # take cropped image with p=0.2 and original image with p=0.4
+                choice = np.random.choice(4, 1, p=[0.2,0.2,0.2,0.4])[0]
+                image = self.get_cropped_image(image, choice)
+                target = target[choice] # last is average in targets
+                #print(image_path + " " + str(choice) + " " + str(target))            
             
         if self.split == 'train':
             image = self.train_aug_pipeline(image)
