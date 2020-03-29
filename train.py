@@ -111,10 +111,12 @@ class Trainer():
                 with torch.no_grad():
                     output_dia = self.model(images)
                     if phase == 'test':
+                        copy_output_dia = output_dia.cpu().numpy()
+                        copy_diameters = diameters.cpu().numpy()
                         for ix in range(len(img_paths)):
                             out.write("{} \t {} \t {} \n". \
-                            format(img_paths[ix], str(output_dia[ix].numpy()), \
-                                   str(diameters[ix].numpy())))
+                            format(img_paths[ix], str(copy_output_dia[ix]), \
+                                   str(copy_diameters[ix])) )
                     
                     loss = self.criterion(output_dia, diameters)
                     total_loss += loss.item() * images.size(0)
