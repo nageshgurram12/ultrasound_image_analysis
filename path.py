@@ -4,13 +4,20 @@ from collections import namedtuple
 import os
 
 cur_dir = os.path.dirname(__file__)
-data_path = os.path.join(cur_dir, "data/us_images_resized/")
+RESIZED = False
+img_dir = "us_images"
+if RESIZED:
+    img_dir += "_resized"
+    
+data_path = os.path.join(cur_dir, "data/" + img_dir + "/")
 
 sym_dict = {
         "DATA_PATH" : data_path,
         "LABELS_FILE" : os.path.join(data_path, "labels.txt"),
         "RESULTS_FILE" : os.path.join(data_path, "output.txt"),
-        "INPUT_SIZE" : 256
+        "INPUT_SIZE" : 256,
+        "CROPPED" : True,
+        "RESIZED" : RESIZED
         }
 
 SYMBOLS = namedtuple("SYMBOLS", sym_dict.keys())(*sym_dict.values())

@@ -28,7 +28,7 @@ class DiameterEstimation(nn.Module):
                         param.requires_grad = False
                 
             # set for only last FC layer
-            if params.predict_only_avg:
+            if params.predict_only_avg or params.aug_by_crop:
                 out = 1
             else:
                 out = params.diameters
@@ -46,6 +46,9 @@ if __name__ == "__main__":
     params = parser.parse_args()
     params.backbone = 'resnet50'
     params.pretrained = True
+    params.predict_only_avg = False
+    params.aug_by_crop = True
+    
     params.diameters = 4
     
     img = torch.rand(1,3,512,512)

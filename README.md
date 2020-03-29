@@ -12,3 +12,15 @@ How to run:
   train.py --backbone="resnet18" <br/>
   [refer train.py for other params]
   
+
+<p>
+To try: <br />
+1) Set LR scheduler
+2) resize after crop
+3) try another model
+4) k-fold cross validation
+</p>
+
+For now only success when:
+RESIZE = True and CROPPED = False
+lr = 0.001

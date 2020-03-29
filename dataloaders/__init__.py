@@ -14,6 +14,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import argparse
+from path import SYMBOLS
 
 class UltrasoundDataloader():
     def __init__(self, params):
@@ -42,20 +43,23 @@ class UltrasoundDataloader():
             target = [item[1] for item in batch]
             img_paths = [item[2] for item in batch]
             batch_size = len(data)
-            # TODO: assumption that we've only one channel
             padded_batch = torch.zeros(batch_size, 3, \
                             self.dataset.max_height, self.dataset.max_width)
             for i, img in enumerate(data):
                 (c, h, w) = img.shape
                 padded_batch[i, :, :h, :w] = img
-                
+            
             target =  torch.FloatTensor(target)
+            target = target.view((batch_size, 1))
             return [padded_batch, target, img_paths]
 
         self.common_params = {'batch_size' : params.batch_size, 
-                   'num_workers' : params.num_workers,
-                   #'collate_fn' : collate
-                   }
+                              'num_workers' : params.num_workers,
+                              }
+        
+        # If we'are using cropped images then padding is needed
+        if SYMBOLS.CROPPED:
+            self.common_params['collate_fn'] = collate
 
   
     def load_train_data(self):
@@ -65,6 +69,7 @@ class UltrasoundDataloader():
         return self.train_loader
 
     def load_val_data(self):
+        self.dataset.split = 'val'
         self.val_loader = DataLoader(self.dataset, sampler = self.valid_sampler, \
                                      **self.common_params)
         return self.val_loader
@@ -81,9 +86,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     params = parser.parse_args()
     params.test_split = 0.2
+    params.val_split = 0.1
     params.batch_size = 4
     params.num_workers = 1
-    params.predict_only_avg = True
+    params.predict_only_avg = False
+    params.aug_by_crop = True
 
     dataloader = UltrasoundDataloader(params)
     
@@ -101,6 +108,6 @@ if __name__ == '__main__':
                 img = img.astype(np.uint8)
                 plt.figure()
                 plt.imshow(img.squeeze())
-        ii += 1
+        break
             
     print(size)

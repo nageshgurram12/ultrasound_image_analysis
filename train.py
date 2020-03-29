@@ -34,7 +34,7 @@ class Trainer():
         # Observe that all parameters are being optimized
         self.optimizer = optim.SGD(params_to_update, lr=params.lr, \
                                    momentum=params.momentum)
-        
+        self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=10)
         self.criterion = nn.MSELoss()
 
         self.model = model
@@ -45,6 +45,8 @@ class Trainer():
         
         params = self.params
         best_val_loss = float('inf')
+        train_data_loader = self.dataloader.load_train_data()
+        
         for epoch in range(params.epochs):
             print('Epoch {}/{}'.format(epoch, params.epochs - 1))
             print('-' * 10)
@@ -52,8 +54,7 @@ class Trainer():
             # set model in train mode
             self.model.train()
               
-            running_loss = 0
-            train_data_loader = self.dataloader.load_train_data()
+            running_loss = 0            
             for images, diameters, img_paths  in train_data_loader:
                 #images, diameters = (sample['image'], sample['label'])
                 images = images.to(self.device)
@@ -66,7 +67,7 @@ class Trainer():
                 loss = self.criterion(output_dia, diameters)
                 
                 # backpropagate
-                loss.backward()
+                loss.backward()                
                 self.optimizer.step()
                 
                 # loss.item gives mean loss over batch
@@ -77,6 +78,8 @@ class Trainer():
                   format("Training ", epoch_loss))
             
             val_loss = self.test('val')
+            self.scheduler.step()
+            
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 best_model_wts = copy.deepcopy(self.model.state_dict())
@@ -110,8 +113,8 @@ class Trainer():
                     if phase == 'test':
                         for ix in range(len(img_paths)):
                             out.write("{} \t {} \t {} \n". \
-                            format(img_paths[ix], \
-                            str(output_dia[ix].numpy()), str(diameters[ix].numpy()) ))
+                            format(img_paths[ix], str(output_dia[ix].numpy()), \
+                                   str(diameters[ix].numpy())))
                     
                     loss = self.criterion(output_dia, diameters)
                     total_loss += loss.item() * images.size(0)
@@ -134,11 +137,13 @@ def  main():
                         help="Choose the backbone model")
     parser.add_argument('--diameters', type=int, default=4,
                         help="Output responses to estimate")
-    parser.add_argument('--predict-only-avg', type=bool, default=True,
+    parser.add_argument('--predict-only-avg', type=bool, action='store_true',
                         help="Predict only average of 3 cross sections")
+    parser.add_argument('--aug-by-crop', type=bool, action='store_true',
+                        help="Crop image vertically at 3 sections to augment")
     
     # training hyper params
-    parser.add_argument('--epochs', type=int, default=15, metavar='N',
+    parser.add_argument('--epochs', type=int, default=5,
                         help='number of epochs to train (default: auto)')
     parser.add_argument('--batch-size', type=int, default=4)
     parser.add_argument('--input-size', type=int, default=256,
@@ -146,11 +151,12 @@ def  main():
     parser.add_argument('--test-split', type=float, default=0.2)
     parser.add_argument('--val-split', type=float, default=0.1)
     parser.add_argument('--num-workers', type=int, default=0)
-    parser.add_argument('--pretrained', type=bool, default=True)
+    parser.add_argument('--pretrained', type=bool, default=True,  
+                        action='store_true')
     
     #optimizers hyper params
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
-                        help='learning rate (default: 0.001)')
+                        help='learning rate (default: 0.01)')
     parser.add_argument('--momentum', type=float, default=0.9,
                         metavar='M', help='momentum (default: 0.9)')
     
