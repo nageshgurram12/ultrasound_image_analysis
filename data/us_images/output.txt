@@ -1,2 +1,0 @@
-Image 	 Actual Diameters 	 Predicted Diameters 
-----------------------------------------
