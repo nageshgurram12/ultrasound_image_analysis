@@ -20,23 +20,25 @@ class UltrasoundDataloader():
     def __init__(self, params):
         self.dataset = UltrasoundData(params)
         
-        dataset_size = self.dataset.datasize
-        indices = list(range(dataset_size))
+        self.dataset_size = dataset_size = self.dataset.datasize
+        self.indices = indices = list(range(dataset_size))
         val_split = params.val_split
         test_split = params.test_split
         
         val_split = int(np.floor(val_split * dataset_size))
         test_split = int(np.floor(test_split * dataset_size))
         
-        np.random.seed(0)
-        np.random.shuffle(indices)
-        (test_indices, val_indices, train_indices) = (indices[:test_split], \
-        indices[test_split:test_split+val_split], indices[test_split+val_split:])
-        
-        # sampler to pick train and val dataset
-        self.train_sampler = SubsetRandomSampler(train_indices)
-        self.valid_sampler = SubsetRandomSampler(val_indices)
-        self.test_sampler = SubsetRandomSampler(test_indices)
+        if not params.cv:
+            self.shuffle_indices()
+            (test_indices, val_indices, train_indices) = \
+                (indices[:test_split], \
+                 indices[test_split:test_split+val_split], 
+                 indices[test_split+val_split:])
+            
+            # sampler to pick train and val dataset
+            self.train_sampler = SubsetRandomSampler(train_indices)
+            self.valid_sampler = SubsetRandomSampler(val_indices)
+            self.test_sampler = SubsetRandomSampler(test_indices)
         
         def collate(batch):
             data = [item[0] for item in batch]
@@ -61,26 +63,54 @@ class UltrasoundDataloader():
         if SYMBOLS.CROPPED:
             self.common_params['collate_fn'] = collate
 
-  
-    def load_train_data(self):
+        self.params = params
+
+    def get_samplers(self, prop):
+        size = len(self.indices)
+        test_size = int(np.floor(self.params.test_split*size))
+        test_indices = self.indices[:test_size]
         
-        self.train_loader = DataLoader(self.dataset, sampler = self.train_sampler, \
+        # take out test part 
+        train_val_indices = self.indices[test_size:]
+        val_size = int(np.floor(self.params.val_split*size))
+        # represents K-fold set of validation
+        val_indices = train_val_indices[val_size*prop:val_size*(prop+1)]
+        
+        # remaining are for training
+        train_indices = train_val_indices[0:val_size*prop]
+        train_indices.extend(train_val_indices[val_size*(prop+1):])
+        
+        self.train_sampler = SubsetRandomSampler(train_indices)
+        self.valid_sampler = SubsetRandomSampler(val_indices)
+        self.test_sampler = SubsetRandomSampler(test_indices)
+        
+    def load_train_val_data(self, ix=0):
+        if self.params.cv:
+            self.get_samplers(ix)
+            
+        self.train_loader = DataLoader(self.dataset, sampler=self.train_sampler,\
                                   **self.common_params)
-        return self.train_loader
+        self.val_loader = DataLoader(self.dataset, sampler=self.valid_sampler,\
+                                     **self.common_params)
+        return self.train_loader, self.val_loader
 
     def load_val_data(self):
-        self.dataset.split = 'val'
-        self.val_loader = DataLoader(self.dataset, sampler = self.valid_sampler, \
+        #self.dataset.split = 'val'
+        self.val_loader = DataLoader(self.dataset, sampler=self.valid_sampler,\
                                      **self.common_params)
         return self.val_loader
     
     def load_test_data(self):
         self.dataset.split = 'test'
-        self.test_loader = DataLoader(self.dataset, sampler = self.test_sampler,\
+        self.test_loader = DataLoader(self.dataset, sampler=self.test_sampler,\
                                  **self.common_params)
         return self.test_loader
         
-
+    def shuffle_indices(self):
+        indices = self.indices
+        np.random.seed(0)
+        np.random.shuffle(indices)
+        self.indices = indices
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

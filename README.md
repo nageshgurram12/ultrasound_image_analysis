@@ -18,7 +18,7 @@ To try: <br />
 1) Set LR scheduler
 2) resize after crop
 3) try another model
-4) k-fold cross validation
+4) k-fold cross validation: (shuffle indices before doing CV, train on entire data, test sampler)
 </p>
 
 For now only success when:

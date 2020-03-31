@@ -8,34 +8,53 @@ class DiameterEstimation(nn.Module):
     def __init__(self, params):
         super().__init__()
         
+                            
+        # set for only last FC layer
+        if params.predict_only_avg or params.aug_by_crop:
+            out = 1
+        else:
+            out = params.diameters
+            
         # Define the network by using pretrained models
         if params.backbone == 'vgg19':
-            self.backbone = models.vgg19_bn(params.pretrained)
+            self.backbone = models.vgg19_bn(pretrained=params.pretrained)
+            
+            if params.pretrained:
+                for param in self.backbone.parameters():
+                    param.requires_grad = False
+                    
+            self.backbone.classifier[6] = nn.Linear(4096, out)
+            
         elif params.backbone == 'resnet18':
-            self.backbone = models.resnet18(params.pretrained)
-        elif params.backbone == 'resnet50':
-            self.backbone = models.resnet50(params.pretrained)
+            self.backbone = models.resnet18(pretrained=params.pretrained)
          
-        # set requires_grad flag to false if pretrained model
-        if params.pretrained:
-            layer = 8
-            counter = 0
-            for child in self.backbone.children():
-                counter += 1
-                #print(str(counter) + "--" + str(child))
-                if counter < layer:
-                    for param in child.parameters():
-                        param.requires_grad = False
-                
-            # set for only last FC layer
-            if params.predict_only_avg or params.aug_by_crop:
-                out = 1
-            else:
-                out = params.diameters
-                
-            self.backbone.fc = nn.Linear(self.backbone.fc.in_features, \
-                                         out)
+            # set requires_grad flag to false if pretrained model
+            if params.pretrained:
+                layer = 8
+                counter = 0
+                for child in self.backbone.children():
+                    counter += 1
+                    #print(str(counter) + "--" + str(child))
+                    if counter < layer:
+                        for param in child.parameters():
+                            param.requires_grad = False
+
+                    
+                self.backbone.fc = nn.Linear(self.backbone.fc.in_features, \
+                                             out)
         
+        elif params.backbone == 'inceptionv3':
+            self.backbone = models.inception_v3(pretrained=params.pretrained)
+            
+            if params.pretrained:
+                for param in self.backbone.parameters():
+                    param.requires_grad = False
+            
+            self.backbone.AuxLogits.fc = nn.Linear( \
+                    self.backbone.AuxLogits.in_features, out)
+            self.backbone.fc = nn.Linear( \
+                    self.backbone.fc.in_features, out)
+            
     def forward(self, x):
         x = self.backbone(x)
         return x

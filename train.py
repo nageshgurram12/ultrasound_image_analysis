@@ -7,6 +7,7 @@ import torch.nn as nn
 from dataloaders import UltrasoundDataloader
 from models import DiameterEstimation
 from path import SYMBOLS
+import numpy as np
 
 class Trainer():
     def __init__(self, params):
@@ -41,11 +42,15 @@ class Trainer():
         self.params = params
         self.device = device
         
-    def train(self):
-        
+    def train(self, prop=0):
+        '''
+        prop represents the proportion part to take out for K-fold CV
+        Ex: if val_split=0.1, then ix = [0,1,2,...9]
+        '''
         params = self.params
         best_val_loss = float('inf')
-        train_data_loader = self.dataloader.load_train_data()
+        train_data_loader, val_data_loader = \
+                    self.dataloader.load_train_val_data(prop)
         
         for epoch in range(params.epochs):
             print('Epoch {}/{}'.format(epoch, params.epochs - 1))
@@ -73,35 +78,50 @@ class Trainer():
                 # loss.item gives mean loss over batch
                 running_loss += loss.item() * images.size(0)
             
-            epoch_loss = running_loss / len(train_data_loader.dataset)
+            train_loss = running_loss / len(train_data_loader.dataset)
             print('{} Loss: {:.4f} '. \
-                  format("Training ", epoch_loss))
+                  format("Training ", train_loss))
             
-            val_loss = self.test('val')
+            val_loss = self.val(val_data_loader)
             self.scheduler.step()
             
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                best_model_wts = copy.deepcopy(self.model.state_dict())
+            if not params.cv:
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    best_model_wts = copy.deepcopy(self.model.state_dict())
         
-        # set model weights based on val loss
-        self.model.load_state_dict(best_model_wts)
+        if not params.cv:
+            # set model weights based on val loss
+            self.model.load_state_dict(best_model_wts)
+        
+        return train_loss, val_loss
+    
+    def val(self,  data_loader):
+        self.model.eval()
+        total_loss = 0
+        for images, diameters, img_paths in data_loader:
+            images = images.to(self.device)
+            diameters = diameters.to(self.device)
             
+            with torch.no_grad():
+                output_dia = self.model(images)
+                loss = self.criterion(output_dia, diameters)
+                total_loss += loss.item() * images.size(0)
+        loss_per_image =  total_loss/ len(data_loader.dataset)
+        print('{} Loss: {:.4f}'.format("Validation",  loss_per_image))
+        return loss_per_image
+    
     def test(self, phase='test'):
         
         self.model.eval()
         total_loss = 0
-        if phase == 'test':
-            data_loader = self.dataloader.load_test_data()
-        else:
-            data_loader = self.dataloader.load_val_data()
+        data_loader = self.dataloader.load_test_data()
         
         # write results to RESULTS_FILE
         out_file = SYMBOLS.RESULTS_FILE
         with open(out_file, "w") as out:
-            if phase == 'test':
-                out.write("Image \t Actual Diameters \t Predicted Diameters \n")
-                out.write("--" * 20 + "\n")
+            out.write("Image \t Actual Diameters \t Predicted Diameters \n")
+            out.write("--" * 20 + "\n")
                 
             for images, diameters, img_paths in data_loader:
                 #images, diameters = (sample['image'], sample['label'])
@@ -110,32 +130,27 @@ class Trainer():
                 
                 with torch.no_grad():
                     output_dia = self.model(images)
-                    if phase == 'test':
-                        copy_output_dia = output_dia.cpu().numpy()
-                        copy_diameters = diameters.cpu().numpy()
-                        for ix in range(len(img_paths)):
-                            out.write("{} \t {} \t {} \n". \
-                            format(img_paths[ix], str(copy_output_dia[ix]), \
-                                   str(copy_diameters[ix])) )
+                    copy_output_dia = output_dia.cpu().numpy()
+                    copy_diameters = diameters.cpu().numpy()
+                    for ix in range(len(img_paths)):
+                        out.write("{} \t {} \t {} \n". \
+                        format(img_paths[ix], str(copy_output_dia[ix]), \
+                                str(copy_diameters[ix])) )
                     
                     loss = self.criterion(output_dia, diameters)
                     total_loss += loss.item() * images.size(0)
         
         loss_per_image =  total_loss/ len(data_loader.dataset)
-        if phase == 'test':
-            print('{} Loss: {:.4f}'.format("Testing",  loss_per_image))
-        else:
-            print('{} Loss: {:.4f}'.format("Validation",  loss_per_image))
+        print('{} Loss: {:.4f}'.format("Testing",  loss_per_image))
         
         return loss_per_image
-        
         
 def  main():
     parser = argparse.ArgumentParser(description="Diameter Esitmation")
     
     # model argumets
     parser.add_argument('--backbone', type=str, default='resnet18',
-                        choices=['resnet18','resnet50','vgg19'],
+                        choices=['resnet18','vgg19','inceptionv3'],
                         help="Choose the backbone model")
     parser.add_argument('--diameters', type=int, default=4,
                         help="Output responses to estimate")
@@ -155,7 +170,8 @@ def  main():
     parser.add_argument('--num-workers', type=int, default=0)
     parser.add_argument('--pretrained', default=True,  
                         action='store_true')
-    
+    parser.add_argument('--cv', action='store_true', \
+                        help='Cross-Validation iwth val_split as 1/K')
     #optimizers hyper params
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.01)')
@@ -164,8 +180,33 @@ def  main():
     
     params = parser.parse_args()
     
-    trainer = Trainer(params)
-    trainer.train()
+    if params.cv:
+        #datasize = trainer.dataloader.dataset_size
+        #train_size = (1-params.test_split) * datasize
+        K = 0
+        total_train_loss, total_val_loss = (0,0)
+        for ix in np.arange(0,1,params.val_split):
+            trainer = Trainer(params)
+            if ix == 0:
+                trainer.dataloader.shuffle_indices()
+                
+            prop = int(10*ix)
+            train_loss, val_loss = trainer.train(prop)
+            total_train_loss += train_loss
+            total_val_loss += val_loss
+            K += 1
+        
+        print("---- Cross Validation ---- \n")
+        print("Average Train Loss: {:.4f}".foramt(total_train_loss/K))
+        print("Average Val Loss: {:.4f}".foramt(total_val_loss/K))
+        
+        # before evaluating on test set, train on complete train, val once more
+        params.val_split = 0
+        params.cv = False
+        trainer = Trainer(params)
+        trainer.train()
+    else:
+        trainer.train()
     trainer.test()
     
     
