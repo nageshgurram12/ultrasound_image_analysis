@@ -195,9 +195,7 @@ def  main():
         
         for ix in np.arange(0,1,params.val_split):
             # we train model on every k-fold separately
-            start_time = timeit.default_timer()
-            trainer.init_model(params)
-            print("Init taking: {:.4f}".format(timeit.default_timer() - start_time))
+            trainer.init_model(params)            
                 
             train_loss, val_loss = trainer.train(ix)
             total_train_loss += train_loss
