@@ -13,14 +13,34 @@ How to run:
   [refer train.py for other params]
   
 
+
+RESUTLS:
+<hr/>
+<table>
+<tr>
+<th>Augmentation by Crop</th>
+<th>Resized</th>
+<th>Cross Validation</th>
+<th>Model</th>
+<th>Train Loss</th>
+<th>Validation Loss</th>
+<th>Test Loss</th>
+</tr>
+
+</table>
+
 <p>
-To try: <br />
-1) Set LR scheduler
-2) resize after crop
-3) try another model
-4) k-fold cross validation: (shuffle indices before doing CV, train on entire data, test sampler)
+ToDo: <br />
+- Try ChextNet pretrained model
+
+ Set LR scheduler - Not much improvement <br/>
+ resize after crop - Not much improvement <br/>
+ try another model - Done <br/>
+ k-fold cross validation - Done <br/>
 </p>
 
+<!-- Comments:
 For now only success when:
 RESIZE = True and CROPPED = False
 lr = 0.001
+-->

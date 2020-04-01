@@ -8,6 +8,7 @@ from dataloaders import UltrasoundDataloader
 from models import DiameterEstimation
 from path import SYMBOLS
 import numpy as np
+import timeit
 
 class Trainer():
     def __init__(self, params):
@@ -15,11 +16,17 @@ class Trainer():
         self.dataloader = UltrasoundDataloader(params)
         
         # Detect if we have a GPU available
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
+        if not params.cv:
+            self.init_model(params)
+
+        self.params = params
+     
+    def init_model(self, params):
         #initialize the model
         model = DiameterEstimation(params)
-        model.to(device)
+        model.to(self.device)
         
         # Get parameters which are not froze to give to optimizer
         params_to_update = model.parameters()
@@ -31,21 +38,18 @@ class Trainer():
                     params_to_update.append(param)
                     print("\t",name)
         
+        self.model = model
         
         # Observe that all parameters are being optimized
         self.optimizer = optim.SGD(params_to_update, lr=params.lr, \
                                    momentum=params.momentum)
-        self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=10)
+        #self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=10)
         self.criterion = nn.MSELoss()
-
-        self.model = model
-        self.params = params
-        self.device = device
         
     def train(self, prop=0):
         '''
         prop represents the proportion part to take out for K-fold CV
-        Ex: if val_split=0.1, then ix = [0,1,2,...9]
+        Ex: if val_split=0.1, then props are [0,0.1,0.2...]
         '''
         params = self.params
         best_val_loss = float('inf')
@@ -68,8 +72,8 @@ class Trainer():
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
                   
-                output_dia = self.model(images)
-                loss = self.criterion(output_dia, diameters)
+                predicted = self.model(images)
+                loss = self.criterion(predicted, diameters)
                 
                 # backpropagate
                 loss.backward()                
@@ -83,7 +87,7 @@ class Trainer():
                   format("Training ", train_loss))
             
             val_loss = self.val(val_data_loader)
-            self.scheduler.step()
+            #self.scheduler.step()
             
             if not params.cv:
                 if val_loss < best_val_loss:
@@ -104,8 +108,8 @@ class Trainer():
             diameters = diameters.to(self.device)
             
             with torch.no_grad():
-                output_dia = self.model(images)
-                loss = self.criterion(output_dia, diameters)
+                predicted = self.model(images)
+                loss = self.criterion(predicted, diameters)
                 total_loss += loss.item() * images.size(0)
         loss_per_image =  total_loss/ len(data_loader.dataset)
         print('{} Loss: {:.4f}'.format("Validation",  loss_per_image))
@@ -129,15 +133,15 @@ class Trainer():
                 diameters = diameters.to(self.device)
                 
                 with torch.no_grad():
-                    output_dia = self.model(images)
-                    copy_output_dia = output_dia.cpu().numpy()
+                    predicted = self.model(images)
+                    copy_predicted = predicted.cpu().numpy()
                     copy_diameters = diameters.cpu().numpy()
                     for ix in range(len(img_paths)):
                         out.write("{} \t {} \t {} \n". \
-                        format(img_paths[ix], str(copy_output_dia[ix]), \
-                                str(copy_diameters[ix])) )
+                        format(img_paths[ix], str(copy_diameters[ix]), \
+                                str(copy_predicted[ix])) )
                     
-                    loss = self.criterion(output_dia, diameters)
+                    loss = self.criterion(predicted, diameters)
                     total_loss += loss.item() * images.size(0)
         
         loss_per_image =  total_loss/ len(data_loader.dataset)
@@ -160,13 +164,14 @@ def  main():
                         help="Crop image vertically at 3 sections to augment")
     
     # training hyper params
-    parser.add_argument('--epochs', type=int, default=5,
+    parser.add_argument('--epochs', type=int, default=2,
                         help='number of epochs to train (default: auto)')
     parser.add_argument('--batch-size', type=int, default=4)
     parser.add_argument('--input-size', type=int, default=256,
                         help='input image size')
     parser.add_argument('--test-split', type=float, default=0.2)
-    parser.add_argument('--val-split', type=float, default=0.1)
+    parser.add_argument('--val-split', type=float, default=0.1,
+                        help="In K-fold cv, this represents 1/K")
     parser.add_argument('--num-workers', type=int, default=0)
     parser.add_argument('--pretrained', default=True,  
                         action='store_true')
@@ -185,20 +190,23 @@ def  main():
         #train_size = (1-params.test_split) * datasize
         K = 0
         total_train_loss, total_val_loss = (0,0)
+        trainer = Trainer(params)
+        trainer.dataloader.shuffle_indices()
+        
         for ix in np.arange(0,1,params.val_split):
-            trainer = Trainer(params)
-            if ix == 0:
-                trainer.dataloader.shuffle_indices()
+            # we train model on every k-fold separately
+            start_time = timeit.default_timer()
+            trainer.init_model(params)
+            print("Init taking: {:.4f}".format(timeit.default_timer() - start_time))
                 
-            prop = int(10*ix)
-            train_loss, val_loss = trainer.train(prop)
+            train_loss, val_loss = trainer.train(ix)
             total_train_loss += train_loss
             total_val_loss += val_loss
             K += 1
         
         print("---- Cross Validation ---- \n")
-        print("Average Train Loss: {:.4f}".foramt(total_train_loss/K))
-        print("Average Val Loss: {:.4f}".foramt(total_val_loss/K))
+        print("Average Train Loss: {:.4f}".format(total_train_loss/K))
+        print("Average Val Loss: {:.4f}".format(total_val_loss/K))
         
         # before evaluating on test set, train on complete train, val once more
         params.val_split = 0
@@ -206,7 +214,9 @@ def  main():
         trainer = Trainer(params)
         trainer.train()
     else:
+        trainer = Trainer(params)
         trainer.train()
+        
     trainer.test()
     
     

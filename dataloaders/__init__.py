@@ -72,13 +72,16 @@ class UltrasoundDataloader():
         
         # take out test part 
         train_val_indices = self.indices[test_size:]
-        val_size = int(np.floor(self.params.val_split*size))
+        #val_size = int(np.floor(self.params.val_split*size))
+        train_size = len(train_val_indices)
+        val_low_bound = int(np.floor(prop * train_size))
+        val_upp_bound = int(np.floor((prop + self.params.val_split) * train_size))
         # represents K-fold set of validation
-        val_indices = train_val_indices[val_size*prop:val_size*(prop+1)]
+        val_indices = train_val_indices[val_low_bound:val_upp_bound]
         
         # remaining are for training
-        train_indices = train_val_indices[0:val_size*prop]
-        train_indices.extend(train_val_indices[val_size*(prop+1):])
+        train_indices = train_val_indices[0:val_low_bound]
+        train_indices.extend(train_val_indices[val_upp_bound:])
         
         self.train_sampler = SubsetRandomSampler(train_indices)
         self.valid_sampler = SubsetRandomSampler(val_indices)
@@ -94,11 +97,6 @@ class UltrasoundDataloader():
                                      **self.common_params)
         return self.train_loader, self.val_loader
 
-    def load_val_data(self):
-        #self.dataset.split = 'val'
-        self.val_loader = DataLoader(self.dataset, sampler=self.valid_sampler,\
-                                     **self.common_params)
-        return self.val_loader
     
     def load_test_data(self):
         self.dataset.split = 'test'

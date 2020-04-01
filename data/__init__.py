@@ -56,7 +56,6 @@ class UltrasoundData(Dataset):
                     
                 self.box_coords.append(co_ords)
             
-            
         self.datasize = len(self.images)
         
         self.split = split
@@ -73,14 +72,16 @@ class UltrasoundData(Dataset):
             #pad_if_needed=True),
             #tr.RandomRotation(45),
             tr.ToTensor(),
-            tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+            tr.Normalize(mean=(0.485, 0.456, 0.406), \
+                         std=(0.229, 0.224, 0.225))
             ])
         
         self.test_aug_pipeline = tr.Compose([
             tr.Grayscale(3),
             #tr.Resize((params.input_size,params.input_size)),    
             tr.ToTensor(),
-            tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+            tr.Normalize(mean=(0.485, 0.456, 0.406), \
+                         std=(0.229, 0.224, 0.225))
             ])
                 
     
@@ -132,7 +133,7 @@ class UltrasoundData(Dataset):
                 choice = np.random.choice(4, 1, p=[0.2,0.2,0.2,0.4])[0]
                 image = self.get_cropped_image(image, choice)
                 target = target[choice] # last is average in targets
-                #print(image_path + " " + str(choice) + " " + str(target))            
+                #print(image_path + " " + str(choice) + " " + str(target))     
             
         if self.split == 'train':
             image = self.train_aug_pipeline(image)
