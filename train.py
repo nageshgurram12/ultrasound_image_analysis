@@ -71,9 +71,16 @@ class Trainer():
                   
                 # zero the parameter gradients
                 self.optimizer.zero_grad()
-                  
-                predicted = self.model(images)
-                loss = self.criterion(predicted, diameters)
+                
+                # get predictions and calcualte loss
+                if self.params.backbone == 'inceptionv3':
+                    predicted, aux_pred = self.model(images)
+                    loss1 = self.criterion(predicted, diameters)
+                    loss2 = self.criterion(aux_pred, diameters)
+                    loss = loss1 + 0.4*loss2
+                else:
+                    predicted = self.model(images)
+                    loss = self.criterion(predicted, diameters)
                 
                 # backpropagate
                 loss.backward()                
@@ -81,7 +88,14 @@ class Trainer():
                 
                 # loss.item gives mean loss over batch
                 running_loss += loss.item() * images.size(0)
-            
+                '''
+                copy_pred = copy.deepcopy(predicted.cpu().numpy())
+                copy_dia = copy.deepcopy(diameters.cpu().numpy())
+                for ix in len(copy_dia):
+                    print("Pred: {:.4f}, Target: {:.4f}".format(\
+                            copy_pred[ix], copy_dia[ix]))
+                '''
+                
             train_loss = running_loss / len(train_data_loader.dataset)
             print('{} Loss: {:.4f} '. \
                   format("Training ", train_loss))
@@ -100,6 +114,7 @@ class Trainer():
         
         return train_loss, val_loss
     
+                    
     def val(self,  data_loader):
         self.model.eval()
         total_loss = 0
@@ -108,9 +123,12 @@ class Trainer():
             diameters = diameters.to(self.device)
             
             with torch.no_grad():
+                # get predictions and calcualte loss
                 predicted = self.model(images)
                 loss = self.criterion(predicted, diameters)
+                
                 total_loss += loss.item() * images.size(0)
+                
         loss_per_image =  total_loss/ len(data_loader.dataset)
         print('{} Loss: {:.4f}'.format("Validation",  loss_per_image))
         return loss_per_image
@@ -133,7 +151,10 @@ class Trainer():
                 diameters = diameters.to(self.device)
                 
                 with torch.no_grad():
+                    # get predictions and calcualte loss
                     predicted = self.model(images)
+                    loss = self.criterion(predicted, diameters)
+                    
                     copy_predicted = predicted.cpu().numpy()
                     copy_diameters = diameters.cpu().numpy()
                     for ix in range(len(img_paths)):
@@ -141,7 +162,6 @@ class Trainer():
                         format(img_paths[ix], str(copy_diameters[ix]), \
                                 str(copy_predicted[ix])) )
                     
-                    loss = self.criterion(predicted, diameters)
                     total_loss += loss.item() * images.size(0)
         
         loss_per_image =  total_loss/ len(data_loader.dataset)
@@ -161,7 +181,10 @@ def  main():
     parser.add_argument('--predict-only-avg', action='store_true',
                         help="Predict only average of 3 cross sections")
     parser.add_argument('--aug-by-crop', action='store_true',
-                        help="Crop image vertically at 3 sections to augment")
+                        help="Crop image vertically at 3 sections to augment, \
+                        But for test images, it always predicts avg")
+    parser.add_argument('--in-mm', action='store_true', default=True,
+                        help="Convert to pixels to mm")
     
     # training hyper params
     parser.add_argument('--epochs', type=int, default=2,

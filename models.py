@@ -8,7 +8,6 @@ class DiameterEstimation(nn.Module):
     def __init__(self, params):
         super().__init__()
         
-                            
         # set for only last FC layer
         if params.predict_only_avg or params.aug_by_crop:
             out = 1
@@ -51,14 +50,14 @@ class DiameterEstimation(nn.Module):
                     param.requires_grad = False
             
             self.backbone.AuxLogits.fc = nn.Linear( \
-                    self.backbone.AuxLogits.in_features, out)
+                    768, out)
             self.backbone.fc = nn.Linear( \
-                    self.backbone.fc.in_features, out)
-            
+                    2048, out)
+        
+        self.params = params
+        
     def forward(self, x):
-        x = self.backbone(x)
-        return x
-
+        return self.backbone(x)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

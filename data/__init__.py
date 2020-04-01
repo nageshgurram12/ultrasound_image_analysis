@@ -38,7 +38,10 @@ class UltrasoundData(Dataset):
                 
             self.images.append(image)
             
-            diameters = [round(float(d),2) for d in diameters.split(",")]
+            diameters = [round(float(d),4) for d in diameters.split(",")]
+            if params.in_mm:
+                diameters = [round(SYMBOLS.PX_TO_MM*d,4) for d in diameters]
+                
             # reversing the list as these represent right to left
             diameters.reverse()
             average = round(sum(diameters)/len(diameters),2)

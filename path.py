@@ -17,7 +17,8 @@ sym_dict = {
         "RESULTS_FILE" : os.path.join(data_path, "output.txt"),
         "INPUT_SIZE" : 256,
         "CROPPED" : True,
-        "RESIZED" : RESIZED
+        "RESIZED" : RESIZED,
+        "PX_TO_MM" :  0.26458
         }
 
 SYMBOLS = namedtuple("SYMBOLS", sym_dict.keys())(*sym_dict.values())
