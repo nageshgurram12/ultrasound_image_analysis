@@ -29,6 +29,12 @@ RESUTLS:
 <th>Test Loss</th>
 </tr>
 
+<tr>
+  <td><span>&#10003;</span></td>
+  <td><span>&#10060;</span></td>
+  <td><span>&#10060;</span></td>
+  <td>Resnet18</td>
+</tr>
 </table>
 
 <p>
