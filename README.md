@@ -38,7 +38,8 @@ RESUTLS:
 </table>
 
 <p>
-ToDo: <br />
+TODO: <br />
+- Rerun GUI for original images
 - Try ChextNet pretrained model
 
  Set LR scheduler - Not much improvement <br/>
