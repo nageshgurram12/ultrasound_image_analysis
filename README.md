@@ -34,12 +34,40 @@ RESUTLS:
   <td><span>&#10060;</span></td>
   <td><span>&#10060;</span></td>
   <td>Resnet18</td>
+  <td>4.74</td>
+  <td>0.71</td>
+  <td>0.48 (Observed: 0-1)</td>
+  <td>
 </tr>
+
+<tr>
+  <td><span>&#10003;</span></td>
+  <td><span>&#10060;</span></td>
+  <td><span>&#10003;</span></td>
+  <td>Resnet18</td>
+  <td>9.08</td>
+  <td>0.92</td>
+  <td>10.87</td>
+  <td>
+</tr>
+
+<tr>
+  <td><span>&#10003;</span></td>
+  <td><span>&#10003;</span></td>
+  <td><span>&#10060;</span></td>
+  <td>Resnet18</td>
+  <td>1.86</td>
+  <td>0.17</td>
+  <td>0.18 (Observed: 0-1)</td>
+</tr>
+
 </table>
+
 
 <p>
 TODO: <br />
-- Rerun GUI for original images
+ <hr/>
+- Rerun GUI for original images <br/>
 - Try ChextNet pretrained model
 
  Set LR scheduler - Not much improvement <br/>
