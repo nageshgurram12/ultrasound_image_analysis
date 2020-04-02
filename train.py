@@ -218,7 +218,7 @@ def  main():
         
         for ix in np.arange(0,1,params.val_split):
             # we train model on every k-fold separately
-            trainer.init_model(params)            
+            trainer.init_model(params)       
                 
             train_loss, val_loss = trainer.train(ix)
             total_train_loss += train_loss
@@ -233,6 +233,9 @@ def  main():
         params.val_split = 0
         params.cv = False
         trainer = Trainer(params)
+        trainer.init_model(params)
+        
+        # train on complete train and val data
         trainer.train()
     else:
         trainer = Trainer(params)
