@@ -42,6 +42,17 @@ RESUTLS:
 
 <tr>
   <td><span>&#10003;</span></td>
+  <td><span>&#10060;</span></td>
+  <td><span>&#10003;</span></td>
+  <td>Resnet18</td>
+  <td>9.08</td>
+  <td>0.92</td>
+  <td>10.87</td>
+  <td>
+</tr>
+
+<tr>
+  <td><span>&#10003;</span></td>
   <td><span>&#10003;</span></td>
   <td><span>&#10060;</span></td>
   <td>Resnet18</td>
@@ -49,8 +60,8 @@ RESUTLS:
   <td>0.17</td>
   <td>0.18 (Observed: 0-1)</td>
 </tr>
-</table>
 
+</table>
 
 
 <p>
