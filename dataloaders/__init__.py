@@ -15,6 +15,7 @@ import torch
 import matplotlib.pyplot as plt
 import argparse
 from path import SYMBOLS
+import random
 
 class UltrasoundDataloader():
     def __init__(self, params):
@@ -106,8 +107,7 @@ class UltrasoundDataloader():
         
     def shuffle_indices(self):
         indices = self.indices
-        np.random.seed(0)
-        np.random.shuffle(indices)
+        random.Random(0).shuffle(indices)
         self.indices = indices
 
 if __name__ == '__main__':
