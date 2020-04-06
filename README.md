@@ -69,8 +69,8 @@ TODO: <br />
  <hr/>
  <ul>
   <li> Initialize params with He's </li>
-  <li> - Rerun GUI for original images </li>
-  <li> - Try ChextNet pretrained model </li>
+  <li> Rerun GUI for original images </li>
+  <li> Try ChextNet pretrained model </li>
 </ul>
 
  Set LR scheduler - Not much improvement <br/>
