@@ -67,8 +67,11 @@ RESUTLS:
 <p>
 TODO: <br />
  <hr/>
-- Rerun GUI for original images <br/>
-- Try ChextNet pretrained model
+ <ul>
+  <li> Initialize params with He's </li>
+  <li> - Rerun GUI for original images </li>
+  <li> - Try ChextNet pretrained model </li>
+</ul>
 
  Set LR scheduler - Not much improvement <br/>
  resize after crop - Not much improvement <br/>
