@@ -13,6 +13,7 @@ class UltrasoundData(Dataset):
     def __init__(self, params, split='train'):
         super().__init__()
         
+        '''
         if not(SYMBOLS.CROPPED or SYMBOLS.RESIZED):
             print("Either Images has to be cropped or resized")
             sys.exit()
@@ -20,7 +21,8 @@ class UltrasoundData(Dataset):
         if params.aug_by_crop != SYMBOLS.CROPPED:
             print("Both of these should be equal")
             sys.exit()
-            
+        '''
+        
         self.base_dir = SYMBOLS.DATA_PATH
         self.labels_file = SYMBOLS.LABELS_FILE
         
@@ -98,7 +100,53 @@ class UltrasoundData(Dataset):
             image = image.crop((2*width/3, 0, width, height))
         
         return image
+    
+    def get_data_by_params(self, index, image, target):
+        '''
+        index - index of image in dataset
+        image - complete image
+        target - [left, middle, right, avg] diameters of the image
+        '''
         
+        # Crop the image with rectangle
+        if SYMBOLS.CROPPED:
+            box = self.box_coords[index]
+            (width, height) = image.size
+            cwidth = box[0] + box[2]
+            if cwidth > width:
+                cwidth = width
+            
+            image = image.crop((box[0], box[1], cwidth, box[1]+box[3]))
+            
+        # Generate 3 images for 3 diameter cross sections and give random
+        if self.params.aug_by_crop:
+            # Dont apply augmentation to test data
+            if self.split == 'test':
+                if self.params.predict_only_centre:
+                    target = target[1] # take only center to predict in test time
+                else:
+                    target = [target[3]]
+            else:
+                # take cropped image with p=0.2 and original image with p=0.4
+                choice = np.random.choice(4, 1, p=[0.1,0.1,0.1,0.7])[0]
+                image = self.get_cropped_image(image, choice)
+                if choice == 3 and self.params.predict_only_centre: 
+                    target = target[1] # take center to predict
+                else:
+                    target = target[choice] # last is average in targets
+                #print(image_path + " " + str(choice) + " " + str(target))  
+        
+        # Predict only average of three diameters
+        # No augmentation, we give complete image
+        elif self.params.predict_only_avg:
+            target = [target[3]]
+         
+        # we're predicting only centre diameter for test image
+        elif self.params.predict_only_centre:
+            target = target[1]
+            
+        return (image, target)
+            
     def __len__(self):
         return self.datasize
     
@@ -109,34 +157,7 @@ class UltrasoundData(Dataset):
         
         target = self.targets[index] # 3 diameters and average
         
-        # crop according to the box
-        if SYMBOLS.CROPPED:
-            box = self.box_coords[index]
-            (width, height) = image.size
-            cwidth = box[0] + box[2]
-            if cwidth > width:
-                cwidth = width
-            
-            image = image.crop((box[0], box[1], cwidth, box[1]+box[3]))
-        else:
-            # -- We supply entire image to model--
-            
-            # no need of collate fn in dataloader
-            if self.params.predict_only_avg:
-                target = [target[3]]
-            target =  torch.FloatTensor(target) 
-        
-        # Generate 3 images for 3 diameter cross sections and give random
-        if self.params.aug_by_crop:
-            # Dont apply augmentation to test data
-            if self.split == 'test':
-                target = [target[3]]
-            else:
-                # take cropped image with p=0.2 and original image with p=0.4
-                choice = np.random.choice(4, 1, p=[0.2,0.2,0.2,0.4])[0]
-                image = self.get_cropped_image(image, choice)
-                target = target[choice] # last is average in targets
-                #print(image_path + " " + str(choice) + " " + str(target))     
+        (image, target) = self.get_data_by_params(index, image, target)
             
         if self.split == 'train':
             image = self.train_aug_pipeline(image)

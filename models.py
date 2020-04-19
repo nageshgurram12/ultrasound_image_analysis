@@ -9,7 +9,7 @@ class DiameterEstimation(nn.Module):
         super().__init__()
         
         # set for only last FC layer
-        if params.predict_only_avg or params.aug_by_crop:
+        if params.predict_only_avg or params.aug_by_crop or params.predict_only_centre:
             out = 1
         else:
             out = params.diameters

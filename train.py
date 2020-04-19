@@ -41,10 +41,9 @@ class Trainer():
         self.model = model
         
         # Observe that all parameters are being optimized
-        self.optimizer = optim.SGD(params_to_update, lr=params.lr, \
-                                   momentum=params.momentum)
+        self.optimizer = optim.Adam(params_to_update, lr=params.lr)
         #self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=10)
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.SmoothL1Loss()
         
     def train(self, prop=0):
         '''
@@ -56,6 +55,8 @@ class Trainer():
         train_data_loader, val_data_loader = \
                     self.dataloader.load_train_val_data(prop)
         
+        out = open(SYMBOLS.RESULTS_FILE, "a")
+        out.write("-------- Training Results  --------- \n")
         for epoch in range(params.epochs):
             print('Epoch {}/{}'.format(epoch, params.epochs - 1))
             print('-' * 10)
@@ -63,7 +64,8 @@ class Trainer():
             # set model in train mode
             self.model.train()
               
-            running_loss = 0            
+            running_loss = 0
+            count = 0
             for images, diameters, img_paths  in train_data_loader:
                 #images, diameters = (sample['image'], sample['label'])
                 images = images.to(self.device)
@@ -88,19 +90,22 @@ class Trainer():
                 
                 # loss.item gives mean loss over batch
                 running_loss += loss.item() * images.size(0)
-                '''
-                copy_pred = copy.deepcopy(predicted.cpu().numpy())
-                copy_dia = copy.deepcopy(diameters.cpu().numpy())
-                for ix in len(copy_dia):
-                    print("Pred: {:.4f}, Target: {:.4f}".format(\
-                            copy_pred[ix], copy_dia[ix]))
-                '''
+                count += images.size(0)
                 
-            train_loss = running_loss / len(train_data_loader.dataset)
+                if epoch == params.epochs - 1:
+                    copy_pred = copy.deepcopy(predicted.detach().cpu().numpy())
+                    copy_dia = copy.deepcopy(diameters.cpu().numpy())
+                    for ix in range(len(copy_dia)):
+                        out.write("{} \t {} \t {} \n". \
+                            format(img_paths[ix], str(copy_dia[ix]), \
+                                    str(copy_pred[ix])) )
+                
+                
+            train_loss = running_loss / count
             print('{} Loss: {:.4f} '. \
                   format("Training ", train_loss))
             
-            val_loss = self.val(val_data_loader)
+            val_loss = self.val(val_data_loader, params, epoch)
             #self.scheduler.step()
             
             if not params.cv:
@@ -112,12 +117,18 @@ class Trainer():
             # set model weights based on val loss
             self.model.load_state_dict(best_model_wts)
         
+        out.close()
         return train_loss, val_loss
     
                     
-    def val(self,  data_loader):
+    def val(self,  data_loader, params, epoch):
         self.model.eval()
         total_loss = 0
+        count = 0
+        if epoch == params.epochs - 1:
+            out = open(SYMBOLS.RESULTS_FILE, "a")
+            out.write("-------- Validation Results  --------- \n")
+            
         for images, diameters, img_paths in data_loader:
             images = images.to(self.device)
             diameters = diameters.to(self.device)
@@ -128,8 +139,17 @@ class Trainer():
                 loss = self.criterion(predicted, diameters)
                 
                 total_loss += loss.item() * images.size(0)
+                count += images.size(0)
+                                
+                if epoch == params.epochs - 1:
+                    copy_pred = copy.deepcopy(predicted.cpu().numpy())
+                    copy_dia = copy.deepcopy(diameters.cpu().numpy())
+                    for ix in range(len(copy_dia)):
+                        out.write("{} \t {} \t {} \n". \
+                            format(img_paths[ix], str(copy_dia[ix]), \
+                                    str(copy_pred[ix])) )
                 
-        loss_per_image =  total_loss/ len(data_loader.dataset)
+        loss_per_image =  total_loss/ count
         print('{} Loss: {:.4f}'.format("Validation",  loss_per_image))
         return loss_per_image
     
@@ -138,10 +158,10 @@ class Trainer():
         self.model.eval()
         total_loss = 0
         data_loader = self.dataloader.load_test_data()
-        
+        count = 0
         # write results to RESULTS_FILE
         out_file = SYMBOLS.RESULTS_FILE
-        with open(out_file, "w") as out:
+        with open(out_file, "a") as out:
             out.write("Image \t Actual Diameters \t Predicted Diameters \n")
             out.write("--" * 20 + "\n")
                 
@@ -163,8 +183,9 @@ class Trainer():
                                 str(copy_predicted[ix])) )
                     
                     total_loss += loss.item() * images.size(0)
+                    count += images.size(0)
         
-        loss_per_image =  total_loss/ len(data_loader.dataset)
+        loss_per_image =  total_loss/ count
         print('{} Loss: {:.4f}'.format("Testing",  loss_per_image))
         
         return loss_per_image
@@ -178,12 +199,16 @@ def  main():
                         help="Choose the backbone model")
     parser.add_argument('--diameters', type=int, default=4,
                         help="Output responses to estimate")
-    parser.add_argument('--predict-only-avg', action='store_true',
+    init_group = parser.add_mutually_exclusive_group()
+    init_group.add_argument('--predict-only-avg', action='store_true',
                         help="Predict only average of 3 cross sections")
+    init_group.add_argument('--predict-only-centre', action='store_true',
+                        help="Predict only centre diameter")
+    
     parser.add_argument('--aug-by-crop', action='store_true',
                         help="Crop image vertically at 3 sections to augment, \
                         But for test images, it always predicts avg")
-    parser.add_argument('--in-mm', action='store_true', default=True,
+    parser.add_argument('--in-mm', action='store_true',
                         help="Convert to pixels to mm")
     
     # training hyper params
@@ -203,8 +228,6 @@ def  main():
     #optimizers hyper params
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.9,
-                        metavar='M', help='momentum (default: 0.9)')
     
     params = parser.parse_args()
     

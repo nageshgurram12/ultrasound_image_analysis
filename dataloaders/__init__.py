@@ -119,6 +119,8 @@ if __name__ == '__main__':
     params.num_workers = 1
     params.predict_only_avg = False
     params.aug_by_crop = True
+    params.in_mm = True
+    params.cv = False
 
     dataloader = UltrasoundDataloader(params)
     

@@ -4,7 +4,7 @@ from collections import namedtuple
 import os
 
 cur_dir = os.path.dirname(__file__)
-RESIZED = False
+RESIZED = True
 img_dir = "us_images"
 if RESIZED:
     img_dir += "_resized"
@@ -16,7 +16,7 @@ sym_dict = {
         "LABELS_FILE" : os.path.join(data_path, "labels.txt"),
         "RESULTS_FILE" : os.path.join(data_path, "output.txt"),
         "INPUT_SIZE" : 256,
-        "CROPPED" : True,
+        "CROPPED" : True, # Set this flag to always true
         "RESIZED" : RESIZED,
         "PX_TO_MM" :  0.26458
         }
