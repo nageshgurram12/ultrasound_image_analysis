@@ -30,7 +30,7 @@ class UltrasoundDataloader():
         test_split = int(np.floor(test_split * dataset_size))
         
         if not params.cv:
-            self.shuffle_indices()
+            indices = self.shuffle_indices()
             (test_indices, val_indices, train_indices) = \
                 (indices[:test_split], \
                  indices[test_split:test_split+val_split], 
@@ -109,6 +109,7 @@ class UltrasoundDataloader():
         indices = self.indices
         random.Random(0).shuffle(indices)
         self.indices = indices
+        return indices
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
