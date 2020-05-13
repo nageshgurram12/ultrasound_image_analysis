@@ -68,26 +68,23 @@ class UltrasoundDataloader():
 
     def get_samplers(self, prop):
         size = len(self.indices)
-        test_size = int(np.floor(self.params.test_split*size))
-        test_indices = self.indices[:test_size]
         
-        # take out test part 
-        train_val_indices = self.indices[test_size:]
-        #val_size = int(np.floor(self.params.val_split*size))
-        train_size = len(train_val_indices)
-        val_low_bound = int(np.floor(prop * train_size))
-        val_upp_bound = int(np.floor((prop + self.params.val_split) * train_size))
+        test_low_bound = int(np.floor(prop * size))
+        test_upp_bound = int(np.floor((prop + self.params.test_split) * size))
         # represents K-fold set of validation
-        val_indices = train_val_indices[val_low_bound:val_upp_bound]
+        test_indices = self.indices[test_low_bound:test_upp_bound]
         
-        # remaining are for training
-        train_indices = train_val_indices[0:val_low_bound]
-        train_indices.extend(train_val_indices[val_upp_bound:])
+        # remaining are for training/validation
+        train_val_indices = self.indices[0:test_low_bound]
+        train_val_indices.extend(self.indices[test_upp_bound:])
         
+        val_size = int(self.params.val_split * len(train_val_indices))
+        val_indices = train_val_indices[:val_size]
+        train_indices = train_val_indices[val_size:]
         self.train_sampler = SubsetRandomSampler(train_indices)
         self.valid_sampler = SubsetRandomSampler(val_indices)
         self.test_sampler = SubsetRandomSampler(test_indices)
-        
+
     def load_train_val_data(self, ix=0):
         if self.params.cv:
             self.get_samplers(ix)

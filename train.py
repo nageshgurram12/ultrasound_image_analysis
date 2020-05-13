@@ -48,7 +48,7 @@ class Trainer():
     def train(self, prop=0):
         '''
         prop represents the proportion part to take out for K-fold CV
-        Ex: if val_split=0.1, then props are [0,0.1,0.2...]
+        Ex: if test_split=0.1, then props are [0,0.1,0.2...]
         '''
         params = self.params
         best_val_loss = float('inf')
@@ -108,14 +108,12 @@ class Trainer():
             val_loss = self.val(val_data_loader, params, epoch)
             #self.scheduler.step()
             
-            if not params.cv:
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    best_model_wts = copy.deepcopy(self.model.state_dict())
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_model_wts = copy.deepcopy(self.model.state_dict())
         
-        if not params.cv:
-            # set model weights based on val loss
-            self.model.load_state_dict(best_model_wts)
+        # set model weights based on val loss
+        self.model.load_state_dict(best_model_wts)
         
         out.close()
         return train_loss, val_loss
@@ -160,7 +158,12 @@ class Trainer():
         data_loader = self.dataloader.load_test_data()
         count = 0
         # write results to RESULTS_FILE
-        out_file = SYMBOLS.RESULTS_FILE
+        
+        if self.params.cv:
+            out_file = SYMBOLS.CV_RESULTS_FILE            
+        else:
+            out_file = SYMBOLS.RESULTS_FILE
+            
         with open(out_file, "a") as out:
             out.write("Image \t Actual Diameters \t Predicted Diameters \n")
             out.write("--" * 20 + "\n")
@@ -177,6 +180,11 @@ class Trainer():
                     
                     copy_predicted = predicted.cpu().numpy()
                     copy_diameters = diameters.cpu().numpy()
+                    if self.params.cv:
+                        res = np.concatenate((copy_predicted, copy_diameters), \
+                                             axis=1)
+                        self.cv_results = np.concatenate((self.cv_results, res), \
+                                                         axis=0)
                     for ix in range(len(img_paths)):
                         out.write("{} \t {} \t {} \n". \
                         format(img_paths[ix], str(copy_diameters[ix]), \
@@ -212,9 +220,9 @@ def  main():
                         help="Convert to pixels to mm")
     
     # training hyper params
-    parser.add_argument('--epochs', type=int, default=2,
+    parser.add_argument('--epochs', type=int, default=15,
                         help='number of epochs to train (default: auto)')
-    parser.add_argument('--batch-size', type=int, default=4)
+    parser.add_argument('--batch-size', type=int, default=8)
     parser.add_argument('--input-size', type=int, default=256,
                         help='input image size')
     parser.add_argument('--test-split', type=float, default=0.2)
@@ -224,9 +232,9 @@ def  main():
     parser.add_argument('--pretrained', default=True,  
                         action='store_true')
     parser.add_argument('--cv', action='store_true', \
-                        help='Cross-Validation iwth val_split as 1/K')
+                        help='Cross-Validation with test_split as 1/K')
     #optimizers hyper params
-    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
     
     params = parser.parse_args()
@@ -235,36 +243,34 @@ def  main():
         #datasize = trainer.dataloader.dataset_size
         #train_size = (1-params.test_split) * datasize
         K = 0
-        total_train_loss, total_val_loss = (0,0)
+        total_train_loss, total_val_loss, total_test_loss = (0,0,0)
         trainer = Trainer(params)
         trainer.dataloader.shuffle_indices()
         
-        for ix in np.arange(0,1,params.val_split):
+        trainer.cv_results = np.empty((0,2))
+        for ix in np.arange(0,1,params.test_split):
             # we train model on every k-fold separately
             trainer.init_model(params)       
                 
             train_loss, val_loss = trainer.train(ix)
             total_train_loss += train_loss
             total_val_loss += val_loss
+            
+            total_test_loss += trainer.test()
+            print("Split: " + str(ix) + "Test loss: "  + str(total_test_loss))
             K += 1
         
         print("---- Cross Validation ---- \n")
         print("Average Train Loss: {:.4f}".format(total_train_loss/K))
-        print("Average Val Loss: {:.4f}".format(total_val_loss/K))
+        #print("Average Val Loss: {:.4f}".format(total_val_loss/K))
         
-        # before evaluating on test set, train on complete train, val once more
-        params.val_split = 0
-        params.cv = False
-        trainer = Trainer(params)
-        trainer.init_model(params)
+        print("Average CV Loss: {:.4f}".format(total_test_loss/K))
         
-        # train on complete train and val data
-        trainer.train()
     else:
         trainer = Trainer(params)
         trainer.train()
         
-    trainer.test()
+        trainer.test()
     
     
 if __name__ == "__main__":
