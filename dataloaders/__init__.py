@@ -46,8 +46,15 @@ class UltrasoundDataloader():
             target = [item[1] for item in batch]
             img_paths = [item[2] for item in batch]
             batch_size = len(data)
+            if self.params.backbone == 'inceptionv3':
+                if self.dataset.max_height < 299:
+                    self.dataset.max_height = 299
+                if self.dataset.max_width < 299:
+                    self.dataset.max_width = 299
+                
             padded_batch = torch.zeros(batch_size, 3, \
                             self.dataset.max_height, self.dataset.max_width)
+            
             for i, img in enumerate(data):
                 (c, h, w) = img.shape
                 padded_batch[i, :, :h, :w] = img

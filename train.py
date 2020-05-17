@@ -239,6 +239,7 @@ def  main():
     
     params = parser.parse_args()
     
+    
     if params.cv:
         #datasize = trainer.dataloader.dataset_size
         #train_size = (1-params.test_split) * datasize
