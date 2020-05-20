@@ -79,8 +79,32 @@ RESUTLS:
 
 </table>
 
+<hr />
 
 <p>
 To analyse the results and generate plots, run 'analyse_cv_results.py' by passing data from './data/us_images_resized/analyse.txt'.
 All the data that is used to generate these plots are from this file.
+</p>
+
+<hr />
+<p>
+The list of images with high error (in Fig.6): 
+<table>
+<tr>
+<th>Image name</th>
+<th>Error </th>
+</tr>
+<tr>
+<td>12-06-36.jpg</td>
+<td>2.44</td>
+</tr>
+<tr>
+<td>11-12-47.jpg</td>
+<td>1.59</td>
+</tr>
+<tr>
+<td>09-53-51_2.jpg</td>
+<td>1.34</td>
+</tr>
+</table>
 </p>
