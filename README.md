@@ -41,8 +41,8 @@ RESUTLS:
 <tr>
   <td><span>&#10003;</span></td>
   <td><span>Center Diameter</span></td>
-  <td><span>&#10003;</span></td>
-  <td><span>&#10003;</span></td>
+  <td><span>&#10060;</span></td>
+  <td><span>&#10060;</span></td>
   <td>Resnet18</td>
   <td>0.34</td>
   <td>
@@ -51,8 +51,8 @@ RESUTLS:
 <tr>
   <td><span>&#10003;</span></td>
   <td><span>Average</span></td>
-  <td><span>&#10060;</span></td>
   <td><span>&#10003;</span></td>
+  <td><span>&#10060;</span></td>
   <td>Resnet18</td>
   <td>0.25</td>
   <td>
@@ -61,18 +61,18 @@ RESUTLS:
 <tr>
   <td><span>&#10003;</span></td>
   <td><span>Average</span></td>
-  <td><span>&#10003;</span></td>
-  <td><span>&#10003;</span></td>
+  <td><span>&#10060;</span></td>
+  <td><span>&#10060;</span></td>
   <td>Resnet18</td>
   <td>0.24</td>
   <td>
 </tr>
 
 <tr>
-  <td><span>&#10060;</span></td>
+  <td><span>&#10003;</span></td>
   <td><span>Center Diameter</span></td>
-  <td><span>&#10060;</span></td>
-  <td><span>&#10060;</span></td>
+  <td><span>&#10003;</span></td>
+  <td><span>&#10003;</span></td>
   <td>Resnet18</td>
   <td>0.11</td>
 </tr>
