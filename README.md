@@ -21,66 +21,66 @@ RESUTLS:
 <table>
 <tr>
 <th>Augmentation by Crop</th>
+<th>Prediction</th>
 <th>Resized</th>
 <th>Cross Validation</th>
 <th>Model</th>
-<th>Train Loss</th>
-<th>Validation Loss</th>
 <th>Test Loss</th>
 </tr>
 
 <tr>
   <td><span>&#10003;</span></td>
-  <td><span>&#10060;</span></td>
+  <td><span>Center Diameter</span></td>
+  <td><span>&#10003;</span></td>
   <td><span>&#10060;</span></td>
   <td>Resnet18</td>
-  <td>4.74</td>
-  <td>0.71</td>
-  <td>0.48 (Observed: 0-1)</td>
+  <td>0.13</td>
   <td>
 </tr>
 
 <tr>
   <td><span>&#10003;</span></td>
-  <td><span>&#10060;</span></td>
+  <td><span>Center Diameter</span></td>
+  <td><span>&#10003;</span></td>
   <td><span>&#10003;</span></td>
   <td>Resnet18</td>
-  <td>9.08</td>
-  <td>0.92</td>
-  <td>10.87</td>
+  <td>0.34</td>
   <td>
 </tr>
 
 <tr>
   <td><span>&#10003;</span></td>
+  <td><span>Average</span></td>
+  <td><span>&#10060;</span></td>
   <td><span>&#10003;</span></td>
+  <td>Resnet18</td>
+  <td>0.25</td>
+  <td>
+</tr>
+
+<tr>
+  <td><span>&#10003;</span></td>
+  <td><span>Average</span></td>
+  <td><span>&#10003;</span></td>
+  <td><span>&#10003;</span></td>
+  <td>Resnet18</td>
+  <td>0.24</td>
+  <td>
+</tr>
+
+<tr>
+  <td><span>&#10060;</span></td>
+  <td><span>Center Diameter</span></td>
+  <td><span>&#10060;</span></td>
   <td><span>&#10060;</span></td>
   <td>Resnet18</td>
-  <td>1.86</td>
-  <td>0.17</td>
-  <td>0.18 (Observed: 0-1)</td>
+  <td>0.11</td>
 </tr>
 
 </table>
 
 
 <p>
-TODO: <br />
- <hr/>
- <ul>
-  <li> Initialize params with He's </li>
-  <li> Rerun GUI for original images </li>
-  <li> Try ChextNet pretrained model </li>
-</ul>
-
- Set LR scheduler - Not much improvement <br/>
- resize after crop - Not much improvement <br/>
- try another model - Done <br/>
- k-fold cross validation - Done <br/>
+To analyse the results and generate plots, run 'analyse_cv_results.py' by passing data from './data/us_images_resized/analyse.txt'.
+All the data that is used to generate these plots are from this file.
 </p>
-
-<!-- Comments:
-For now only success when:
-RESIZE = True and CROPPED = False
-lr = 0.001
--->

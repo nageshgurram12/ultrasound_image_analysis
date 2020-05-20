@@ -35,8 +35,12 @@ if __name__ == "__main__":
 
 
     plt.figure(0)
-    plt.hist(diff, bins=(-1.5, -0.5, 0.5, 2.5))
+    plt.hist(diff, color='red')
     plt.xlabel("Errors"); plt.ylabel("Frequency")
+    plt.axvline(x=0, color='black', label='0 error')
+    plt.axvline(x=-std_dev, c='g', linestyle='--', label='-1 std. dev')
+    plt.axvline(x=std_dev, c='b', linestyle='--', label='+1 std. dev')
+    plt.legend()
     
     plt.figure(1)
     plt.scatter(range(n), diff, c='r')
