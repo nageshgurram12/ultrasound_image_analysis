@@ -55,7 +55,7 @@ class Trainer():
         train_data_loader, val_data_loader = \
                     self.dataloader.load_train_val_data(prop)
         
-        out = open(SYMBOLS.RESULTS_FILE, "a")
+        out = open(SYMBOLS.TRAIN_RESULTS_FILE, "a")
         out.write("-------- Training Results  --------- \n")
         for epoch in range(params.epochs):
             print('Epoch {}/{}'.format(epoch, params.epochs - 1))
@@ -124,7 +124,7 @@ class Trainer():
         total_loss = 0
         count = 0
         if epoch == params.epochs - 1:
-            out = open(SYMBOLS.RESULTS_FILE, "a")
+            out = open(SYMBOLS.TRAIN_RESULTS_FILE, "a")
             out.write("-------- Validation Results  --------- \n")
             
         for images, diameters, img_paths in data_loader:
@@ -159,10 +159,12 @@ class Trainer():
         count = 0
         # write results to RESULTS_FILE
         
+        test_results = np.empty((0,2))
+        
         if self.params.cv:
             out_file = SYMBOLS.CV_RESULTS_FILE            
         else:
-            out_file = SYMBOLS.RESULTS_FILE
+            out_file = SYMBOLS.TEST_RESULTS_FILE
             
         with open(out_file, "a") as out:
             out.write("Image \t Actual Diameters \t Predicted Diameters \n")
@@ -180,10 +182,9 @@ class Trainer():
                     
                     copy_predicted = predicted.cpu().numpy()
                     copy_diameters = diameters.cpu().numpy()
-                    if self.params.cv:
-                        res = np.concatenate((copy_predicted, copy_diameters), \
+                    res = np.concatenate((copy_predicted, copy_diameters), \
                                              axis=1)
-                        self.cv_results = np.concatenate((self.cv_results, res), \
+                    test_results = np.concatenate((test_results, res), \
                                                          axis=0)
                     for ix in range(len(img_paths)):
                         out.write("{} \t {} \t {} \n". \
@@ -194,7 +195,11 @@ class Trainer():
                     count += images.size(0)
         
         loss_per_image =  total_loss/ count
+        diff = test_results[:, 0] - test_results[:, 1]
+        mad = np.mean(np.abs(diff))
+        rmse = np.sqrt(np.sum(np.square(diff))/count)
         print('{} Loss: {:.4f}'.format("Testing",  loss_per_image))
+        print('{} MAD: {:.4f}, RMSE: {:.4f}'.format("Testing", mad, rmse))
         
         return loss_per_image
         
@@ -248,7 +253,6 @@ def  main():
         trainer = Trainer(params)
         trainer.dataloader.shuffle_indices()
         
-        trainer.cv_results = np.empty((0,2))
         for ix in np.arange(0,1,params.test_split):
             # we train model on every k-fold separately
             trainer.init_model(params)       
